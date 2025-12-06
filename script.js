@@ -3531,7 +3531,6 @@ document.addEventListener('DOMContentLoaded', function() {
                 const emojiGroup = categoryHeader.querySelector('.emoji-group');
                 if (emojiGroup) emojiGroup.classList.add('collapsed');
                 const toggleIcon = label.querySelector('.collapse-toggle');
-                if (toggleIcon) toggleIcon.textContent = '+';
             }
         });
         
@@ -3545,17 +3544,11 @@ document.addEventListener('DOMContentLoaded', function() {
                 
                 const section = this.closest('.collapsible-section');
                 const content = this.nextElementSibling;
-                const toggleIcon = this.querySelector('.collapse-toggle');
-                
+
                 if (content && (content.classList.contains('section-content') || 
                             content.classList.contains('emoji-group'))) {
                     section.classList.toggle('collapsed');
                     content.classList.toggle('collapsed');
-                    
-                    // Обновляем значок
-                    if (toggleIcon) {
-                        toggleIcon.textContent = content.classList.contains('collapsed') ? '+' : '−';
-                    }
                     
                     // Сохраняем состояние
                     const sectionId = section.id || 
@@ -3585,40 +3578,11 @@ document.addEventListener('DOMContentLoaded', function() {
             if (isCollapsed && content) {
                 section.classList.add('collapsed');
                 content.classList.add('collapsed');
-                const toggleIcon = header.querySelector('.collapse-toggle');
-                if (toggleIcon) toggleIcon.textContent = '+';
             } else if (!isCollapsed && content) {
                 section.classList.remove('collapsed');
                 content.classList.remove('collapsed');
-                const toggleIcon = header.querySelector('.collapse-toggle');
-                if (toggleIcon) toggleIcon.textContent = '−';
             }
         });
-        
-        // Добавляем значок для секции с текстом если его нет
-        const subtitleSection = document.querySelector('.collapsible-section:has(#cardSubtitle)');
-        if (subtitleSection) {
-            const subtitleHeader = subtitleSection.querySelector('.section-header');
-            
-            // Проверяем есть ли уже значок
-            if (subtitleHeader && !subtitleHeader.querySelector('.collapse-toggle')) {
-                // Создаем и добавляем значок
-                const toggleSpan = document.createElement('span');
-                toggleSpan.className = 'collapse-toggle';
-                toggleSpan.textContent = '−'; // По умолчанию развернуто
-                subtitleHeader.appendChild(toggleSpan);
-                
-                // Восстанавливаем состояние
-                const isCollapsed = localStorage.getItem('section_subtitle') === 'true';
-                const content = subtitleHeader.nextElementSibling;
-                
-                if (isCollapsed && content) {
-                    subtitleSection.classList.add('collapsed');
-                    content.classList.add('collapsed');
-                    toggleSpan.textContent = '+';
-                }
-            }
-        }
     }
     
     // ===== УПРАВЛЕНИЕ КАТЕГОРИЯМИ ЭМОДЗИ =====
@@ -4186,19 +4150,50 @@ let controlsHTML = '<div class="animation-controls" style="margin-top: 15px;">';
             const initialColor = getVolumeColor(initialVolume);
             musicVolumeSlider.style.setProperty('--current-volume-color', initialColor);
             
-            // Обработчик для изменения цвета при движении
+            // ВАЖНО: Обработчик для изменения громкости
             musicVolumeSlider.addEventListener('input', function(e) {
                 const volume = e.target.value / 100;
                 const color = getVolumeColor(volume);
+                
+                // Устанавливаем громкость
+                musicVolume = volume;
+                
+                // Обновляем цвет слайдера
                 e.target.style.setProperty('--current-volume-color', color);
+                
+                // ОБНОВЛЯЕМ ГРОМКОСТЬ ТЕКУЩЕГО АУДИО
+                if (audioPlayer) {
+                    audioPlayer.volume = isMusicMuted ? 0 : volume;
+                }
+                
+                // ОБНОВЛЯЕМ ГРОМКОСТЬ ВСЕХ ПРЕДЗАГРУЖЕННЫХ ТРЕКОВ
+                preloadedMusic.forEach(audio => {
+                    if (audio) {
+                        audio.volume = isMusicMuted ? 0 : volume;
+                    }
+                });
+                
+                // Если включаем звук с нуля, снимаем mute
+                if (volume > 0 && isMusicMuted) {
+                    isMusicMuted = false;
+                    localStorage.setItem('musicMuted', 'false');
+                    const btn = document.getElementById('musicToggleBtn');
+                    if (btn) {
+                        btn.classList.remove('muted');
+                        btn.title = "Выключить музыку";
+                    }
+                }
+                
+                // Сохраняем громкость
+                localStorage.setItem('musicVolume', volume.toString());
             });
-        }
 
-        function getVolumeColor(volume) {
-            if (volume < 0.25) return '#ff3333';
-            if (volume < 0.5) return '#ff9933';
-            if (volume < 0.75) return '#ffff33';
-            return '#33ff33';
+            function getVolumeColor(volume) {
+                if (volume < 0.25) return '#ff3333';
+                if (volume < 0.5) return '#ff9933';
+                if (volume < 0.75) return '#ffff33';
+                return '#33ff33';
+            }
         }
         
         if (musicPrevBtn) {
@@ -4253,17 +4248,6 @@ let controlsHTML = '<div class="animation-controls" style="margin-top: 15px;">';
             }
         });
     }
-
-    function addSafeEventListener(element, event, handler) {
-        if (!element) return;
-        
-        // Удаляем старый обработчик (если есть)
-        element.removeEventListener(event, handler);
-        
-        // Добавляем новый
-        element.addEventListener(event, handler);
-    }
-
 
     function toggleTrackInfo() {
         const trackFull = document.getElementById('musicTrackFull');
@@ -4364,43 +4348,55 @@ let controlsHTML = '<div class="animation-controls" style="margin-top: 15px;">';
 
 
     function toggleMusic() {
-        togglePlayPause();
+        console.log('toggleMusic вызван');
+        
+        // Если нет аудио плеера, запускаем первый трек
+        if (!audioPlayer) {
+            startCurrentTrack();
+            return;
+        }
+        
+        // Если музыка на паузе, возобновляем
+        if (audioPlayer.paused) {
+            audioPlayer.play().then(() => {
+                // НЕ меняем isMusicMuted при play/pause
+                updateMusicToggleButton();
+                showNotification('🔊 Музыка включена', 'success');
+            }).catch(error => {
+                console.error('Ошибка воспроизведения:', error);
+                showNotification('Не удалось включить музыку', 'warning');
+            });
+        } 
+        // Если музыка играет, ставим на паузу
+        else {
+            audioPlayer.pause();
+            // НЕ меняем isMusicMuted при play/pause
+            updateMusicToggleButton();
+            showNotification('⏸️ Музыка приостановлена', 'info');
+        }
+        
+        // Синхронизируем кнопки
+        syncPlayerButtons();
     }
 
-    function changeMusicVolume(event) {
-        const volume = event.target.value / 100;
-        musicVolume = volume;
+    function updateMusicToggleButton() {
+        const btn = document.getElementById('musicToggleBtn');
+        if (!btn) return;
         
-        // Рассчитываем цвет в зависимости от громкости
-        let color;
-        if (volume < 0.25) {
-            color = '#ff3333'; // Красный
-        } else if (volume < 0.5) {
-            color = '#ff9933'; // Оранжевый
-        } else if (volume < 0.75) {
-            color = '#ffff33'; // Желтый
+        // Красный (muted) только если специально нажали mute, а не просто пауза
+        if (isMusicMuted) {
+            btn.classList.add('muted');
+            btn.classList.remove('active');
+            btn.title = "Включить музыку";
+        } else if (audioPlayer && !audioPlayer.paused) {
+            btn.classList.add('active');
+            btn.classList.remove('muted');
+            btn.title = "Выключить музыку";
         } else {
-            color = '#33ff33'; // Зеленый
+            btn.classList.remove('active');
+            btn.classList.remove('muted');
+            btn.title = "Включить музыку";
         }
-        
-        // Устанавливаем CSS переменную для цвета границы
-        event.target.style.setProperty('--current-volume-color', color);
-        
-        if (audioPlayer) {
-            audioPlayer.volume = volume;
-            
-            if (volume > 0 && isMusicMuted) {
-                isMusicMuted = false;
-                localStorage.setItem('musicMuted', 'false');
-                const btn = document.getElementById('musicToggleBtn');
-                if (btn) {
-                    btn.classList.remove('muted');
-                    btn.title = "Выключить музыку";
-                }
-            }
-        }
-        
-        localStorage.setItem('musicVolume', volume.toString());
     }
 
     function prevTrack() {
@@ -4421,25 +4417,25 @@ let controlsHTML = '<div class="animation-controls" style="margin-top: 15px;">';
     function startCurrentTrack() {
         // Останавливаем предыдущую музыку
         stopMusic();
-
+        
+        // Пытаемся получить предзагруженный аудио элемент
         const preloadedAudio = getPreloadedAudio(currentTrackIndex);
-    
+        
         if (preloadedAudio) {
-            // Клонируем предзагруженный элемент
-            audioPlayer = preloadedAudio.cloneNode();
+            // Используем существующий предзагруженный аудио элемент
+            audioPlayer = preloadedAudio;
             console.log(`🎵 Используется предзагруженный трек: ${musicTracks[currentTrackIndex].name}`);
         } else {
-            // Создаем новый, если предзагрузка не завершена
+            // Создаем новый аудио элемент
             audioPlayer = new Audio(musicTracks[currentTrackIndex].url);
             console.log(`🎵 Загружаем трек напрямую: ${musicTracks[currentTrackIndex].name}`);
         }
-
-        // Создаем аудиоплеер для текущего трека
-        const currentTrack = musicTracks[currentTrackIndex];
-        audioPlayer = new Audio(currentTrack.url);
         
         // Устанавливаем громкость
         audioPlayer.volume = isMusicMuted ? 0 : musicVolume;
+        
+        // Сбрасываем на начало
+        audioPlayer.currentTime = 0;
         
         // Зацикливание
         const savedLoop = localStorage.getItem('musicLoop');
@@ -4448,7 +4444,7 @@ let controlsHTML = '<div class="animation-controls" style="margin-top: 15px;">';
         // Обработчики событий
         audioPlayer.addEventListener('error', (e) => {
             console.error('Ошибка загрузки музыки:', e);
-            showNotification(`Не удалось загрузить: ${currentTrack.name}`, 'warning');
+            showNotification(`Не удалось загрузить: ${musicTracks[currentTrackIndex].name}`, 'warning');
         });
         
         audioPlayer.addEventListener('loadedmetadata', () => {
@@ -4474,7 +4470,7 @@ let controlsHTML = '<div class="animation-controls" style="margin-top: 15px;">';
                     fullLoopBtn.title = audioPlayer.loop ? "Выключить повтор" : "Повторять трек";
                 }
                 
-                showTrackNotification(currentTrack, 'Играет');
+                showTrackNotification(musicTracks[currentTrackIndex], 'Играет');
                 
             }).catch(error => {
                 console.log('Автовоспроизведение заблокировано:', error);
@@ -4491,7 +4487,6 @@ let controlsHTML = '<div class="animation-controls" style="margin-top: 15px;">';
         audioPlayer.addEventListener('play', syncPlayerButtons);
         audioPlayer.addEventListener('pause', syncPlayerButtons);
     }
-
 
     function handleTrackEnded() {
         console.log('Трек завершился. Repeat:', audioPlayer.loop);
@@ -4587,17 +4582,6 @@ let controlsHTML = '<div class="animation-controls" style="margin-top: 15px;">';
             }
         }
     }
-
-    function resetMusicSettings() {
-        // Проверяем, есть ли сохраненные настройки
-        if (!localStorage.getItem('musicMuted')) {
-            localStorage.setItem('musicMuted', 'false');
-            localStorage.setItem('musicVolume', '0.3');
-            localStorage.setItem('musicTrackIndex', '0');
-            localStorage.setItem('musicLoop', 'true'); // По умолчанию повтор включен
-        }
-    }
-
 
     function handleThemeMusic(themeId) {
         const musicControls = document.getElementById('musicControls');
@@ -4839,13 +4823,21 @@ let controlsHTML = '<div class="animation-controls" style="margin-top: 15px;">';
         const mainBtn = document.getElementById('musicToggleBtn');
         const fullBtn = document.getElementById('fullPlayBtn');
         
-        if (!audioPlayer) return;
+        if (!audioPlayer) {
+            if (mainBtn) {
+                mainBtn.classList.remove('active', 'muted');
+                mainBtn.title = "Включить музыку";
+            }
+            return;
+        }
         
         if (audioPlayer.paused) {
             if (mainBtn) {
                 mainBtn.classList.remove('active');
-                mainBtn.classList.add('muted');
-                mainBtn.title = "Включить музыку";
+                // НЕ добавляем muted автоматически при паузе
+                // muted должен добавляться только при явном mute
+                mainBtn.classList.toggle('muted', isMusicMuted);
+                mainBtn.title = isMusicMuted ? "Включить звук" : "Включить музыку";
             }
             if (fullBtn) {
                 fullBtn.innerHTML = '<i class="fas fa-play"></i>';
