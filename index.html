@@ -13,18 +13,21 @@
             <h1><i class="fas fa-palette"></i> Конструктор анимированных карточек для GitVerse</h1>
             <p class="subtitle">Создайте SVG с анимациями для вашего README.md. Скачайте файл и загрузите в репозиторий.</p>
             <!-- ПЕРЕКЛЮЧАТЕЛЬ ТЕМ САЙТА - БУДЕТ ЗДЕСЬ -->
-            <div id="themeSwitcherContainer">
-                <div class="compact-theme-switcher">
-                    <button id="toggleThemeSwitcher" class="compact-theme-btn">
-                        <i class="fas fa-palette"></i>
-                        <span>Сменить тему сайта</span>
-                        <i class="fas fa-chevron-down"></i>
+            <div class="compact-theme-switcher">
+                <button id="toggleThemeSwitcher" class="compact-theme-btn">
+                    <i class="fas fa-palette"></i>
+                    <span>Сменить тему сайта</span>
+                    <i class="fas fa-chevron-down"></i>
+                </button>
+                <div class="snow-control" style="margin-top: 10px;">
+                    <button id="toggleSnowBtn" class="snow-toggle-btn">
+                        <i class="fas fa-snowflake"></i>
+                        <span>Включить снегопад</span>
                     </button>
-                    
-                    <div class="theme-buttons-container collapsed">
-                        <div class="theme-switcher-buttons">
-                            <!-- Кнопки тем будут добавлены через JS -->
-                        </div>
+                </div>
+                <div class="theme-buttons-container collapsed">
+                    <div class="theme-switcher-buttons">
+                        <!-- Кнопки тем будут добавлены через JS -->
                     </div>
                 </div>
             </div>
@@ -51,7 +54,6 @@
                     <div class="form-group collapsible-section">
                         <div class="section-header">
                             <h3><i class="fas fa-user"></i> Основная информация</h3>
-                            <span class="collapse-toggle">−</span>
                         </div>
                         <div class="section-content">
                             <label for="username"><i class="fas fa-user"></i> Ваш никнейм</label>
@@ -66,7 +68,6 @@
                     <div class="form-group collapsible-section">
                         <div class="section-header">
                             <h3><i class="fas fa-icons"></i> Эмодзи на карточке</h3>
-                            <span class="collapse-toggle">−</span>
                         </div>
                         <div class="section-content">
                             <!-- Три поля для эмодзи -->
@@ -228,13 +229,39 @@
                     <div class="form-group collapsible-section">
                         <div class="section-header">
                             <h3><i class="fas fa-brush"></i> Тема карточки</h3>
-                            <span class="collapse-toggle">−</span>
                         </div>
                         <div class="section-content">
                             <div class="theme-selector" id="themeSelector"></div>
                         </div>
                     </div>
-                    
+
+                    <div class="form-group collapsible-section">
+                        <div class="section-header">
+                            <h3><i class="fas fa-star"></i> Стиль карточки</h3>
+                        </div>
+                        <div class="section-content">
+                            <div class="card-style-selector" id="cardStyleSelector">
+                                <!-- Стили будут добавлены через JS -->
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-group collapsible-section">
+                        <div class="section-header">
+                            <h3><i class="fas fa-sliders-h"></i> Настройки анимации</h3>
+                        </div>
+                        <div class="section-content">
+                            <div id="animationControls">
+                                <!-- Контролы будут добавлены динамически в зависимости от стиля -->
+                            </div>
+                            <div id="animationPresets" class="animation-presets">
+                                <button class="animation-preset-btn" data-preset="subtle">Тонкая</button>
+                                <button class="animation-preset-btn" data-preset="medium">Средняя</button>
+                                <button class="animation-preset-btn" data-preset="intense">Интенсивная</button>
+                            </div>
+                        </div>
+                    </div>
+                                        
                     <!-- Кнопка загрузки -->
                     <div class="action-buttons">
                         <button id="downloadBtn" class="action-btn download-btn">
@@ -260,6 +287,18 @@
                     <h2><i class="fas fa-eye"></i> Предпросмотр</h2>
                     <div class="preview-container" id="previewContainer">
                         <p>Карточка появится здесь после генерации...</p>
+                    </div>
+
+                    <div class="form-group collapsible-section" style="margin-top: 25px; border: 1px solid var(--border-color); border-radius: 12px;">
+                        <div class="section-header">
+                            <h3><i class="fas fa-quote-right"></i> Текст внизу карточки</h3>
+                        </div>
+                        <div class="section-content">
+                            <input type="text" id="cardSubtitle" value="Сгенерировано в GitVerse">
+                            <p style="color: var(--text-secondary); font-size: 0.85rem; margin-top: 5px;">
+                                <i class="fas fa-info-circle"></i> Этот текст будет отображаться внизу карточки
+                            </p>
+                        </div>
                     </div>
 
                     <h2><i class="fas fa-code"></i> Код для вставки в README.md</h2>
@@ -305,6 +344,76 @@
     <div id="customCheckmark" class="custom-checkmark">
         <div class="checkmark-emoji">✅</div>
         <div class="checkmark-text">Скачано успешно!</div>
+    </div>
+
+    <div id="musicControls" class="music-controls" style="display: none;">
+        <button id="musicPrevBtn" class="music-nav-btn" title="Предыдущая мелодия">
+            <i class="fas fa-backward"></i>
+        </button>
+        <button id="musicToggleBtn" class="music-btn" title="Включить музыку">
+            <i class="fas fa-music"></i>
+        </button>
+        <button id="musicNextBtn" class="music-nav-btn" title="Следующая мелодия">
+            <i class="fas fa-forward"></i>
+        </button>
+        <div id="musicSliderContainer" class="music-slider-container">
+            <input type="range" id="musicVolumeSlider" min="0" max="100" value="30" 
+                   class="music-volume-slider" title="Громкость">
+        </div>
+        <div id="musicTrackDisplay" class="music-track-display" title="Нажмите для просмотра полного названия">
+            <span id="currentTrackName">Christmas 1</span>
+            <i class="fas fa-expand-alt expand-icon"></i>
+        </div>
+        <div id="musicTrackFull" class="music-track-full">
+            <div class="track-full-header">
+                <h4>Сейчас играет:</h4>
+                <button id="closeTrackInfo" class="close-track-btn">&times;</button>
+            </div>
+            <div id="fullTrackName" class="full-track-name">All I Want For Christmas Is You</div>
+            
+            <!-- Прогресс-бар для перемотки -->
+            <div class="track-progress-container">
+                <div class="track-time">
+                    <span id="currentTime">0:00</span>
+                    <span id="totalTime">0:00</span>
+                </div>
+                <div class="track-progress">
+                    <input type="range" id="trackSeekSlider" min="0" max="100" value="0" 
+                        class="track-seek-slider" title="Перемотка">
+                </div>
+            </div>
+            
+            <!-- Контролы воспроизведения в окошке -->
+            <div class="track-controls">
+                <button id="fullPrevBtn" class="track-control-btn" title="Предыдущий трек">
+                    <i class="fas fa-step-backward"></i>
+                </button>
+                <button id="fullPlayBtn" class="track-control-btn play-btn" title="Пауза">
+                    <i class="fas fa-pause"></i>
+                </button>
+                <button id="fullNextBtn" class="track-control-btn" title="Следующий трек">
+                    <i class="fas fa-step-forward"></i>
+                </button>
+                <button id="fullLoopBtn" class="track-control-btn" title="Зациклить">
+                    <i class="fas fa-redo"></i>
+                </button>
+            </div>
+            
+            <div class="track-list">
+                <div class="track-item active" data-track="0">
+                    <i class="fas fa-play"></i>
+                    <span>All I Want For Christmas Is You</span>
+                </div>
+                <div class="track-item" data-track="1">
+                    <i class="fas fa-music"></i>
+                    <span>Last Christmas</span>
+                </div>
+                <div class="track-item" data-track="2">
+                    <i class="fas fa-music"></i>
+                    <span>Jingle Bells Rock</span>
+                </div>
+            </div>
+        </div>
     </div>
 
     <script src="script.js"></script>
