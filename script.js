@@ -1,3 +1,74 @@
+const musicTracks = [
+    {
+        name: "Christmas 1",
+        fullName: "All I Want For Christmas Is You",
+        url: 'christmas1.mp3'
+    },
+    {
+        name: "Christmas 2",
+        fullName: "Last Christmas", 
+        url: 'christmas2.mp3'
+    },
+    {
+        name: "Christmas 3",
+        fullName: "Jingle Bells Rock", 
+        url: 'christmas3.mp3'
+    }
+];
+
+let preloadedMusic = [];
+
+// Функция предзагрузки музыки
+function preloadMusic() {
+    console.log('🎵 Начинаю предзагрузку новогодней музыки...');
+    
+    musicTracks.forEach((track, index) => {
+        const audio = new Audio();
+        audio.src = track.url;
+        audio.preload = 'auto';
+        audio.volume = 0; // Без звука
+        
+        // Сохраняем в массив для повторного использования
+        preloadedMusic[index] = audio;
+        
+        audio.addEventListener('canplaythrough', () => {
+            console.log(`✅ Трек "${track.name}" предзагружен и готов к воспроизведению`);
+        });
+        
+        audio.addEventListener('loadeddata', () => {
+            console.log(`📥 "${track.name}" - загружены метаданные`);
+        });
+        
+        audio.addEventListener('error', (e) => {
+            console.error(`❌ Ошибка загрузки "${track.name}":`, e);
+        });
+        
+        // Запускаем загрузку
+        audio.load();
+    });
+    
+    // Таймер для отслеживания общего прогресса
+    setTimeout(() => {
+        let loadedCount = 0;
+        preloadedMusic.forEach(audio => {
+            if (audio.readyState >= 3) { // HAVE_FUTURE_DATA или больше
+                loadedCount++;
+            }
+        });
+        console.log(`🎵 Прогресс: ${loadedCount}/${musicTracks.length} треков загружено`);
+    }, 1000);
+}
+
+// Функция получения предзагруженного аудио
+function getPreloadedAudio(trackIndex) {
+    if (preloadedMusic[trackIndex] && preloadedMusic[trackIndex].readyState >= 3) {
+        console.log(`🎵 Использую предзагруженный трек: ${musicTracks[trackIndex].name}`);
+        return preloadedMusic[trackIndex];
+    }
+    return null;
+}
+
+
 document.addEventListener('DOMContentLoaded', function() {
     // Элементы
     const copyBtn = document.getElementById('copyBtn');
@@ -25,24 +96,7 @@ document.addEventListener('DOMContentLoaded', function() {
     let snowflakes = [];
     let isSnowActive = false;
     
-    // Ссылка на новогоднюю музыку
-    const musicTracks = [
-        {
-            name: "Christmas 1",
-            fullName: "All I Want For Christmas Is You",
-            url: 'christmas1.mp3' // или .ogg
-        },
-        {
-            name: "Christmas 2",
-            fullName: "Last Christmas", 
-            url: 'christmas2.mp3' // или .ogg
-        },
-        {
-            name: "Christmas 3",
-            fullName: "Jingle Bells Rock", 
-            url: 'christmas3.mp3' // или .ogg
-        }
-    ];
+    preloadMusic();
 
     // ===== ТЕМЫ САЙТА =====
     const siteThemes = [
@@ -4367,7 +4421,19 @@ let controlsHTML = '<div class="animation-controls" style="margin-top: 15px;">';
     function startCurrentTrack() {
         // Останавливаем предыдущую музыку
         stopMusic();
-        
+
+        const preloadedAudio = getPreloadedAudio(currentTrackIndex);
+    
+        if (preloadedAudio) {
+            // Клонируем предзагруженный элемент
+            audioPlayer = preloadedAudio.cloneNode();
+            console.log(`🎵 Используется предзагруженный трек: ${musicTracks[currentTrackIndex].name}`);
+        } else {
+            // Создаем новый, если предзагрузка не завершена
+            audioPlayer = new Audio(musicTracks[currentTrackIndex].url);
+            console.log(`🎵 Загружаем трек напрямую: ${musicTracks[currentTrackIndex].name}`);
+        }
+
         // Создаем аудиоплеер для текущего трека
         const currentTrack = musicTracks[currentTrackIndex];
         audioPlayer = new Audio(currentTrack.url);
