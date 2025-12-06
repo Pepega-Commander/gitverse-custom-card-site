@@ -1310,9 +1310,15 @@ input[type="text"]:focus {
 }
 
 .compact-theme-switcher {
+    position: relative;
+    display: inline-block;
     width: 100%;
     max-width: 400px;
-    margin: 0 auto;
+}
+
+.compact-theme-switcher.collapsed .theme-buttons-container {
+    max-height: 0;
+    overflow: hidden;
 }
 
 .compact-theme-btn {
@@ -1349,24 +1355,34 @@ input[type="text"]:focus {
 }
 
 .theme-buttons-container {
-    margin-top: 10px;
-    padding: 15px;
+    max-height: 350px;
+    overflow-y: auto;
+    transition: max-height 0.4s ease;
+    border-radius: 12px 12px 0 0; /* Скругляем только верх */
     background: var(--panel-bg);
     border: 1px solid var(--border-color);
-    border-radius: 10px;
-    max-height: 400px;
-    overflow-y: auto;
-    transition: all 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55);
-    opacity: 1;
+    margin-top: 10px;
+    padding: 15px;
 }
 
 .theme-buttons-container.collapsed {
     max-height: 0;
-    padding: 0 15px;
-    margin-top: 0;
-    border: 1px solid transparent;
-    opacity: 0;
+    padding: 0;
+    margin: 0;
+    border: none;
     overflow: hidden;
+}
+
+.theme-buttons-container:not(.collapsed) {
+    display: block;
+    max-height: 350px;
+    overflow-y: auto;
+    transition: max-height 0.4s ease;
+    border-radius: 12px;
+    background: var(--panel-bg);
+    border: 1px solid var(--border-color);
+    margin-top: 10px;
+    padding: 15px;
 }
 
 /* Стили для кнопок тем внутри компактного переключателя */
@@ -2133,25 +2149,16 @@ body.track-info-open::before {
     to { transform: rotate(360deg); }
 }
 
-.snow-control {
-    text-align: center;
-    margin: 15px 0;
-}
-
-.snow-toggle-btn {
-    background: linear-gradient(135deg, var(--accent), var(--accent-green));
-    color: white;
-    border: none;
-    padding: 10px 20px;
-    border-radius: 25px;
-    cursor: pointer;
-    font-size: 14px;
-    font-weight: 600;
-    display: inline-flex;
-    align-items: center;
-    gap: 8px;
-    transition: all 0.3s ease;
-    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+.compact-theme-switcher.newyear-theme .snow-control {
+    display: block;
+    opacity: 1;
+    transform: translateY(0);
+    max-height: 100px;
+    margin-top: 15px;
+    padding: 15px;
+    border-top: 1px solid var(--border-color);
+    background: rgba(0, 0, 0, 0.1);
+    border-radius: 0 0 15px 15px;
 }
 
 .snow-toggle-btn:hover {
@@ -2201,10 +2208,64 @@ body.track-info-open::before {
 
 .snow-control {
     margin-top: 15px;
-    padding: 10px;
+    padding: 15px;
     background: rgba(0, 0, 0, 0.1);
     border-radius: 15px;
-    display: inline-block;
+    text-align: center;
+    opacity: 0;
+    transform: translateY(-10px);
+    transition: all 0.3s ease;
+    max-height: 0;
+    overflow: hidden;
+    display: none; /* Скрыта по умолчанию */
+}
+
+.snow-toggle-btn {
+    background: linear-gradient(135deg, var(--accent), var(--accent-green));
+    color: white;
+    border: none;
+    padding: 12px 24px;
+    border-radius: 25px;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 600;
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+    width: 100%;
+    max-width: 300px;
+    justify-content: center;
+}
+
+.compact-theme-switcher.newyear-theme:not(.collapsed) .snow-control {
+    display: block;
+    opacity: 1;
+    transform: translateY(0);
+    max-height: 100px;
+    margin-top: 15px;
+    padding: 15px;
+    border-top: 1px solid var(--border-color);
+    background: rgba(0, 0, 0, 0.1);
+    border-radius: 0 0 15px 15px;
+}
+
+circle + text {
+    paint-order: stroke;
+    stroke: white;
+    stroke-width: 1.2px;
+    stroke-linejoin: round;
+    stroke-opacity: 0.9;
+    filter: drop-shadow(0 1px 1px rgba(0,0,0,0.3));
+}
+
+circle[fill*="#fff"] + text,
+circle[fill*="#ffcc"] + text,
+circle[fill*="#ffff"] + text,
+circle[fill*="#ccff"] + text {
+    stroke: rgba(0,0,0,0.5);
+    stroke-width: 1px;
 }
 
 footer {

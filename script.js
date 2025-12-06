@@ -2970,7 +2970,12 @@ document.addEventListener('DOMContentLoaded', function() {
         const savedTheme = localStorage.getItem('siteTheme');
         if (savedTheme && siteThemeColors[savedTheme]) {
             currentSiteTheme = savedTheme;
+            console.log('📁 Загружена сохраненная тема:', savedTheme);
             setSiteTheme(savedTheme);
+        } else {
+            // По умолчанию - темная тема
+            currentSiteTheme = 'dark';
+            setSiteTheme('dark');
         }
         
         // Создаем HTML для кнопок тем
@@ -2996,24 +3001,15 @@ document.addEventListener('DOMContentLoaded', function() {
         document.querySelectorAll('.site-theme-btn').forEach(btn => {
             btn.addEventListener('click', function() {
                 const themeId = this.dataset.theme;
+                console.log('🎨 Выбрана тема:', themeId);
                 setSiteTheme(themeId);
                 
                 // Сохраняем состояние в localStorage
                 localStorage.setItem('siteTheme', themeId);
                 
                 // Показываем уведомление
-                const themeName = this.querySelector('span:not(.theme-emoji-small)').textContent.trim();
+                const themeName = this.textContent.trim();
                 showNotification(`Тема "${themeName}" применена`, 'success');
-                
-                // Автоматически скрываем панель тем через 2 секунды
-                setTimeout(() => {
-                    const container = document.querySelector('.theme-buttons-container');
-                    const toggleBtn = document.getElementById('toggleThemeSwitcher');
-                    if (container && !container.classList.contains('collapsed')) {
-                        container.classList.add('collapsed');
-                        toggleBtn.classList.remove('expanded');
-                    }
-                }, 2000);
             });
         });
         
@@ -3022,18 +3018,24 @@ document.addEventListener('DOMContentLoaded', function() {
         if (toggleThemeBtn) {
             toggleThemeBtn.addEventListener('click', function() {
                 const container = document.querySelector('.theme-buttons-container');
+                const themeSwitcher = this.closest('.compact-theme-switcher');
+                
                 if (container) {
                     container.classList.toggle('collapsed');
                     this.classList.toggle('expanded');
                     
-                    // Меняем текст кнопки
+                    // Обновляем текст кнопки
                     const span = this.querySelector('span');
-                    const isExpanded = this.classList.contains('expanded');
-                    span.textContent = isExpanded ? 'Скрыть темы сайта' : 'Сменить тему сайта';
+                    span.textContent = this.classList.contains('expanded') ? 'Скрыть темы сайта' : 'Сменить тему сайта';
+                    
+                    // Обновляем видимость кнопки снега
+                    console.log('🔄 Обновляем видимость снега после переключения панели');
+                    setTimeout(updateSnowVisibility, 100);
                 }
             });
         }
     }
+        
     
     function setSiteTheme(themeId) {
         currentSiteTheme = themeId;
@@ -3048,33 +3050,19 @@ document.addEventListener('DOMContentLoaded', function() {
         document.documentElement.style.setProperty('--accent', colors.accent);
         document.documentElement.style.setProperty('--accent-green', colors.accentGreen);
         
-        // Управляем снегом
-        const snowBtn = document.getElementById('toggleSnowBtn');
-        if (themeId === 'newyear') {
-            // Показываем кнопку снега
-            if (snowBtn) {
-                snowBtn.style.display = 'inline-flex';
-                
-                // Проверяем, был ли включен снег ранее
-                const wasSnowActive = localStorage.getItem('snowActive') === 'true';
-                if (wasSnowActive) {
-                    setTimeout(() => {
-                        toggleSnow(true);
-                        showNotification('❄️ Новогодняя тема! Снегопад можно включить кнопкой ниже', 'info');
-                    }, 500);
-                } else {
-                    showNotification('🎄 Новогодняя тема! Можно включить снегопад', 'info');
-                }
-            }
-        } else {
-            // Скрываем кнопку и выключаем снег
-            if (snowBtn) {
-                snowBtn.style.display = 'none';
-            }
-            toggleSnow(false);
-        }
+        // Управляем видимостью кнопки снега
+        updateSnowVisibility();
+
         
+        // Музыка
         handleThemeMusic(themeId);
+        
+        // Уведомление для новогодней темы
+        if (themeId === 'newyear') {
+            setTimeout(() => {
+                showNotification('🎄 Новогодняя тема! Появилась пасхалка...', 'info', 3000);
+            }, 500);
+        }
 
         // Обновляем активную кнопку темы
         document.querySelectorAll('.site-theme-btn').forEach(btn => {
@@ -3083,14 +3071,23 @@ document.addEventListener('DOMContentLoaded', function() {
                 btn.classList.add('active');
             }
         });
+
+        // И замените на безопасный вариант:
+        const themeButtons = document.querySelectorAll('.site-theme-btn');
+        if (themeButtons.length > 0) {
+            themeButtons.forEach(btn => {
+                if (btn && btn.dataset) {
+                    btn.classList.remove('active');
+                    if (btn.dataset.theme === themeId) {
+                        btn.classList.add('active');
+                    }
+                }
+            });
+        }
         
-        // Событие для обновления кнопки снега
-        document.dispatchEvent(new CustomEvent('themeChanged'));
-        
-        // Генерируем карточку с новыми цветами
+        // Генерируем карточку
         generateCard();
     }
-
     
     // ===== ИНИЦИАЛИЗАЦИЯ ТЕМ SVG =====
     function initSVGThemes() {
@@ -3963,11 +3960,6 @@ let controlsHTML = '<div class="animation-controls" style="margin-top: 15px;">';
         });
     }
 
-    // Инициализируем всё
-    initSiteThemes();
-    initSVGThemes();
-    initCardStyles();
-    
     // === АВТОМАТИЧЕСКАЯ ГЕНЕРАЦИЯ ПРИ ИЗМЕНЕНИЯХ ===
     document.getElementById('username').addEventListener('input', generateCard);
     document.getElementById('bio').addEventListener('input', generateCard);
@@ -4726,117 +4718,214 @@ let controlsHTML = '<div class="animation-controls" style="margin-top: 15px;">';
     }
 
     function initSnow() {
-        const savedSnowState = localStorage.getItem('snowActive');
-        if (savedSnowState === 'true' && currentSiteTheme === 'newyear') {
-            setTimeout(() => {
-                toggleSnow(true);
-            }, 1000); // Запускаем с небольшой задержкой
+        console.log('❄️ Инициализация снега...');
+        
+        // Создаем canvas для снега если его нет
+        if (!document.getElementById('snowCanvas')) {
+            const canvas = document.createElement('canvas');
+            canvas.id = 'snowCanvas';
+            canvas.style.position = 'fixed';
+            canvas.style.top = '0';
+            canvas.style.left = '0';
+            canvas.style.width = '100%';
+            canvas.style.height = '100%';
+            canvas.style.pointerEvents = 'none';
+            canvas.style.zIndex = '9998';
+            canvas.style.opacity = '0';
+            canvas.style.transition = 'opacity 0.5s ease';
+            document.body.appendChild(canvas);
+            console.log('✅ Canvas для снега создан');
         }
         
-        // Создаем canvas для снега
-        const canvas = document.createElement('canvas');
-        canvas.id = 'snowCanvas';
-        document.body.appendChild(canvas);
+        // Загружаем сохраненное состояние
+        const savedSnowState = localStorage.getItem('snowActive');
+        if (savedSnowState === 'true') {
+            isSnowActive = true;
+            console.log('❄️ Снег был сохранен как включенный');
+        }
         
-        // Кнопка включения снега
+        // Находим кнопку снега
         const snowBtn = document.getElementById('toggleSnowBtn');
         if (snowBtn) {
-            snowBtn.addEventListener('click', function() {
-                toggleSnow(!isSnowActive);
+            console.log('✅ Кнопка снега найдена:', snowBtn);
+            
+            // Обновляем начальное состояние кнопки
+            updateSnowButton();
+            
+            // Обработчик клика
+            snowBtn.addEventListener('click', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                
+                console.log('=== КЛИК ПО КНОПКЕ СНЕГА ===');
+                console.log('1. Текущее состояние isSnowActive:', isSnowActive);
+                console.log('2. Тема сайта:', currentSiteTheme);
+                console.log('3. Canvas существует:', !!document.getElementById('snowCanvas'));
+                
+                // Меняем состояние
+                isSnowActive = !isSnowActive;
+                
+                console.log('4. Новое состояние isSnowActive:', isSnowActive);
+                
+                // Включаем/выключаем снег
+                toggleSnow(isSnowActive);
+                
+                // Сохраняем состояние
+                localStorage.setItem('snowActive', isSnowActive.toString());
+                console.log('5. Сохранено в localStorage:', isSnowActive);
             });
+        } else {
+            console.error('❌ Кнопка снега не найдена!');
         }
         
-        // Обновляем состояние кнопки при смене темы
-        function updateSnowButton() {
-            if (snowBtn) {
-                if (currentSiteTheme === 'newyear') {
-                    snowBtn.style.display = 'inline-flex';
-                    snowBtn.disabled = false;
-                    if (isSnowActive) {
-                        snowBtn.classList.add('active');
-                        snowBtn.innerHTML = '<i class="fas fa-snowflake"></i><span>Выключить снегопад</span>';
-                    } else {
-                        snowBtn.classList.remove('active');
-                        snowBtn.innerHTML = '<i class="fas fa-snowflake"></i><span>Включить снегопад</span>';
-                    }
-                } else {
-                    snowBtn.style.display = 'none';
-                    snowBtn.disabled = true;
-                    toggleSnow(false); // Выключаем снег если тема не новогодняя
-                }
-            }
+        // Включаем снег если он был сохранен и тема новогодняя
+        if (isSnowActive && currentSiteTheme === 'newyear') {
+            console.log('❄️ Автовключение снега (сохраненное состояние)');
+            setTimeout(() => {
+                toggleSnow(true);
+            }, 1000);
         }
-        
-        updateSnowButton();
-        
-        // Обновляем кнопку при смене темы
-        document.addEventListener('themeChanged', updateSnowButton);
     }
 
-        function toggleSnow(enable) {
-        const canvas = document.getElementById('snowCanvas');
+    function updateSnowButtonState() {
         const snowBtn = document.getElementById('toggleSnowBtn');
+        if (!snowBtn) return;
         
-        if (!canvas) return;
+        if (isSnowActive) {
+            snowBtn.classList.add('active');
+            snowBtn.innerHTML = '<i class="fas fa-snowflake"></i><span>Выключить снегопад ✨</span>';
+        } else {
+            snowBtn.classList.remove('active');
+            snowBtn.innerHTML = '<i class="fas fa-snowflake"></i><span>Включить снегопад 🎁</span>';
+        }
+    }
+
+    // Простая функция обновления кнопки
+    function updateSnowButton() {
+        const snowBtn = document.getElementById('toggleSnowBtn');
+        if (!snowBtn) return;
+        
+        if (isSnowActive) {
+            snowBtn.classList.add('active');
+            snowBtn.innerHTML = '<i class="fas fa-snowflake"></i><span>Выключить снегопад ✨</span>';
+            console.log('🔄 Кнопка снега: активна');
+        } else {
+            snowBtn.classList.remove('active');
+            snowBtn.innerHTML = '<i class="fas fa-snowflake"></i><span>Включить снегопад 🎁</span>';
+            console.log('🔄 Кнопка снега: неактивна');
+        }
+    }
+
+
+    // Функция управления видимостью (которая использует CSS классы)
+    function updateSnowVisibility() {
+        const themeSwitcher = document.querySelector('.compact-theme-switcher');
+        
+        if (!themeSwitcher) {
+            console.error('❌ compact-theme-switcher не найден');
+            return;
+        }
+        
+        console.log('🔄 updateSnowVisibility вызвана, тема:', currentSiteTheme);
+        
+        // Убираем класс новогодней темы
+        themeSwitcher.classList.remove('newyear-theme');
+        
+        // Добавляем класс ТОЛЬКО если тема новогодняя
+        if (currentSiteTheme === 'newyear') {
+            themeSwitcher.classList.add('newyear-theme');
+            console.log('✅ Добавлен класс newyear-theme к compact-theme-switcher');
+            
+            // Восстанавливаем состояние кнопки снега
+            const snowBtn = document.getElementById('toggleSnowBtn');
+            if (snowBtn) {
+                const savedSnowState = localStorage.getItem('snowActive');
+                if (savedSnowState === 'true') {
+                    snowBtn.classList.add('active');
+                    snowBtn.innerHTML = '<i class="fas fa-snowflake"></i><span>Выключить снегопад ✨</span>';
+                    console.log('❄️ Снег был включен, обновляем кнопку');
+                } else {
+                    snowBtn.classList.remove('active');
+                    snowBtn.innerHTML = '<i class="fas fa-snowflake"></i><span>Включить снегопад 🎁</span>';
+                }
+            }
+        } else {
+            console.log('❌ Не новогодняя тема, убираем класс newyear-theme');
+        }
+    }
+
+    function toggleSnow(enable) {
+        const canvas = document.getElementById('snowCanvas');
+        console.log('❄️ toggleSnow вызван:', enable, 'canvas:', canvas);
+        
+        if (!canvas) {
+            console.error('❌ Canvas не найден!');
+            return;
+        }
         
         isSnowActive = enable;
         
-        if (enable && currentSiteTheme === 'newyear') {
+        if (enable) {
+            console.log('❄️ Включаем снег...');
             // Включаем снег
+            canvas.style.opacity = '1';
             canvas.classList.add('active');
             startSnowfall(canvas);
             
-            if (snowBtn) {
-                snowBtn.classList.add('active');
-                snowBtn.innerHTML = '<i class="fas fa-snowflake"></i><span>Выключить снегопад</span>';
-            }
-            
-            showNotification('❄️ Снегопад включен!', 'info');
+            showNotification('❄️ Снегопад включен!', 'success');
         } else {
+            console.log('❄️ Выключаем снег...');
             // Выключаем снег
+            canvas.style.opacity = '0';
             canvas.classList.remove('active');
             stopSnowfall();
             
-            if (snowBtn) {
-                snowBtn.classList.remove('active');
-                snowBtn.innerHTML = '<i class="fas fa-snowflake"></i><span>Включить снегопад</span>';
-            }
-            
-            if (enable) { // Если пытались включить, но тема не новогодняя
-                showNotification('❄️ Снегопад доступен только в новогодней теме', 'warning');
-            }
+            showNotification('❄️ Снегопад выключен', 'info');
         }
         
-        // Сохраняем состояние
-        localStorage.setItem('snowActive', enable.toString());
+        // Обновляем кнопку
+        updateSnowButton();
     }
 
     function startSnowfall(canvas) {
+        console.log('❄️ Запуск снегопада на canvas:', canvas);
+        
         const ctx = canvas.getContext('2d');
-        const snowflakes = [];
+        if (!ctx) {
+            console.error('❌ Не удалось получить контекст canvas');
+            return;
+        }
+        
+        // Очищаем предыдущую анимацию
+        if (snowInterval) {
+            clearInterval(snowInterval);
+            snowflakes = [];
+        }
         
         // Настраиваем размер canvas
         function resizeCanvas() {
             canvas.width = window.innerWidth;
             canvas.height = window.innerHeight;
+            console.log('📐 Canvas размеры:', canvas.width, 'x', canvas.height);
         }
         
         resizeCanvas();
         window.addEventListener('resize', resizeCanvas);
         
         // Создаем снежинки
-        function createSnowflakes(count = 100) {
+        function createSnowflakes(count = 80) {
             for (let i = 0; i < count; i++) {
                 snowflakes.push({
                     x: Math.random() * canvas.width,
                     y: Math.random() * canvas.height,
-                    radius: Math.random() * 3 + 1, // Размер 1-4px
-                    speed: Math.random() * 1 + 0.5, // Скорость падения
-                    sway: Math.random() * 2 - 1, // Колебание в стороны
-                    opacity: Math.random() * 0.5 + 0.3, // Прозрачность
-                    swaySpeed: Math.random() * 0.05 + 0.02 // Скорость колебания
+                    radius: Math.random() * 3 + 1,
+                    speed: Math.random() * 1 + 0.5,
+                    sway: Math.random() * 2 - 1,
+                    opacity: Math.random() * 0.5 + 0.3,
+                    swaySpeed: Math.random() * 0.05 + 0.02
                 });
             }
+            console.log('❄️ Создано снежинок:', snowflakes.length);
         }
         
         // Анимация снежинок
@@ -4844,7 +4933,7 @@ let controlsHTML = '<div class="animation-controls" style="margin-top: 15px;">';
             ctx.clearRect(0, 0, canvas.width, canvas.height);
             
             // Добавляем новые снежинки если нужно
-            if (snowflakes.length < 100 && Math.random() > 0.97) {
+            if (snowflakes.length < 80 && Math.random() > 0.97) {
                 createSnowflakes(1);
             }
             
@@ -4880,25 +4969,64 @@ let controlsHTML = '<div class="animation-controls" style="margin-top: 15px;">';
                 ctx.shadowBlur = 0;
             });
             
+            // Продолжаем анимацию если снег активен
             if (isSnowActive) {
                 requestAnimationFrame(animateSnow);
             }
         }
         
-        createSnowflakes(50); // Начинаем с 50 снежинок
-        animateSnow();
+        createSnowflakes(50);
+        
+        // Запускаем анимацию
+        snowInterval = requestAnimationFrame(animateSnow);
+        console.log('✅ Снегопад запущен');
     }
 
     function stopSnowfall() {
+        console.log('❄️ Остановка снегопада...');
+        
+        if (snowInterval) {
+            cancelAnimationFrame(snowInterval);
+            snowInterval = null;
+        }
+        
+        snowflakes = [];
+        
+        // Очищаем canvas
         const canvas = document.getElementById('snowCanvas');
         if (canvas) {
             const ctx = canvas.getContext('2d');
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            if (ctx) {
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+            }
         }
-        snowflakes = [];
+        
+        console.log('✅ Снегопад остановлен');
     }
 
 
+    function showSnowButton() {
+        const snowControl = document.querySelector('.snow-control');
+        const snowBtn = document.getElementById('toggleSnowBtn');
+        
+        if (!snowControl || !snowBtn) return;
+        
+        // Обновляем текст кнопки
+        if (isSnowActive) {
+            snowBtn.classList.add('active');
+            snowBtn.innerHTML = '<i class="fas fa-snowflake"></i><span>Выключить снегопад ✨</span>';
+        } else {
+            snowBtn.classList.remove('active');
+            snowBtn.innerHTML = '<i class="fas fa-snowflake"></i><span>Включить снегопад 🎁</span>';
+        }
+    }
+
+    function hideSnowButton() {
+        const snowControl = document.querySelector('.snow-control');
+        if (snowControl) {
+            snowControl.style.display = 'none';
+        }
+    }
    
     // ===== ФУНКЦИЯ ПОКАЗА УВЕДОМЛЕНИЙ (если её нет) =====
     function showNotification(message, type = 'info') {
@@ -4924,16 +5052,6 @@ let controlsHTML = '<div class="animation-controls" style="margin-top: 15px;">';
         }, 3000);
     }
 
-
-    // Инициализация сворачиваемых секций
-    initCollapsibleSections();
-    
-    // Инициализация управления сворачиванием
-    initSectionControls();
-    initEmojiCollapsibleControls();
-    initAnimationControls();
-    initSnow();
-
     setTimeout(() => {
         document.querySelectorAll('.collapsible-section').forEach(section => {
             const toggleIcon = section.querySelector('.collapse-toggle');
@@ -4952,8 +5070,21 @@ let controlsHTML = '<div class="animation-controls" style="margin-top: 15px;">';
         });
     }, 200);
     
+    // Инициализация
+    initSiteThemes();
+    initSVGThemes();
+    initCardStyles();
+    initCollapsibleSections();
+    initSectionControls();
+    initEmojiCollapsibleControls();
+    initAnimationControls();
+    initSnow();
     initMusicControls();
     
+    setTimeout(() => {
+        updateSnowVisibility();
+    }, 200);
+
     // Генерируем первую карточку
     generateCard();
 });
