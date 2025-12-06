@@ -3062,6 +3062,25 @@ document.addEventListener('DOMContentLoaded', function() {
             setTimeout(() => {
                 showNotification('🎄 Новогодняя тема! Появилась пасхалка...', 'info', 3000);
             }, 500);
+        } else if (themeId !== 'newyear' && isSnowActive) {
+            console.log('❌ Не новогодняя тема, выключаем снег');
+            isSnowActive = false;
+        
+            // Обновляем кнопку
+            updateSnowButtonState();
+            
+            // Выключаем снег визуально
+            const canvas = document.getElementById('snowCanvas');
+            if (canvas) {
+                canvas.style.opacity = '0';
+                canvas.classList.remove('active');
+                stopSnowfall();
+            }
+            
+            // Сохраняем новое состояние
+            localStorage.setItem('snowActive', 'false');
+            
+            // Не показываем уведомление, чтобы не раздражать пользователя
         }
 
         // Обновляем активную кнопку темы
@@ -3271,6 +3290,30 @@ document.addEventListener('DOMContentLoaded', function() {
             downloadFile();
         }
     });
+
+    function showNotification(message, type = 'info') {
+        const notification = document.createElement('div');
+        notification.className = `notification notification-${type}`;
+        
+        let icon = 'info-circle';
+        if (type === 'success') icon = 'check-circle';
+        if (type === 'warning') icon = 'exclamation-triangle';
+        
+        notification.innerHTML = `
+            <i class="fas fa-${icon}"></i>
+            <span>${message}</span>
+        `;
+        
+        document.body.appendChild(notification);
+        
+        setTimeout(() => notification.classList.add('show'), 10);
+        
+        setTimeout(() => {
+            notification.classList.remove('show');
+            setTimeout(() => notification.remove(), 300);
+        }, 3000);
+    }
+
     
     // ===== ГАЛОЧКА =====
     function showCustomCheckmark() {
@@ -3438,12 +3481,10 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
         
-        // Для секций настроек (кроме текста внизу карточки - он будет обработан отдельно)
-        document.querySelectorAll('.section-header').forEach(header => {
-            // Пропускаем секцию с текстом внизу карточки - она будет обработана отдельно
-            if (header.closest('.collapsible-section')?.querySelector('#cardSubtitle')) {
-                return;
-            }
+        // Для ВСЕХ секций настроек (включая текст внизу карточки)
+        document.querySelectorAll('.collapsible-section .section-header').forEach(header => {
+            // Пропускаем обработку если это категория эмодзи
+            if (header.closest('.category-header')) return;
             
             header.addEventListener('click', function(e) {
                 if (e.target.classList.contains('collapse-toggle')) return;
@@ -3452,7 +3493,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 const content = this.nextElementSibling;
                 const toggleIcon = this.querySelector('.collapse-toggle');
                 
-                if (content && content.classList.contains('section-content')) {
+                if (content && (content.classList.contains('section-content') || 
+                            content.classList.contains('emoji-group'))) {
                     section.classList.toggle('collapsed');
                     content.classList.toggle('collapsed');
                     
@@ -3462,59 +3504,64 @@ document.addEventListener('DOMContentLoaded', function() {
                     }
                     
                     // Сохраняем состояние
-                    const sectionType = this.querySelector('h3').textContent.trim();
-                    localStorage.setItem(`section_${sectionType}`, content.classList.contains('collapsed'));
+                    const sectionId = section.id || 
+                                    this.querySelector('h3').textContent.trim() || 
+                                    'subtitle';
+                    localStorage.setItem(`section_${sectionId}`, content.classList.contains('collapsed'));
                     
                     // Обновляем глобальное состояние
                     updateGlobalSectionCollapseState();
                 }
             });
             
-            // Восстанавливаем состояние
+            // Восстанавливаем состояние для ВСЕХ секций
             const section = header.closest('.collapsible-section');
             const content = header.nextElementSibling;
-            const sectionType = header.querySelector('h3').textContent.trim();
-            const isCollapsed = localStorage.getItem(`section_${sectionType}`) === 'true';
+            
+            // Определяем уникальный идентификатор
+            let sectionId;
+            if (section.querySelector('#cardSubtitle')) {
+                sectionId = 'subtitle';
+            } else {
+                sectionId = header.querySelector('h3').textContent.trim();
+            }
+            
+            const isCollapsed = localStorage.getItem(`section_${sectionId}`) === 'true';
             
             if (isCollapsed && content) {
                 section.classList.add('collapsed');
                 content.classList.add('collapsed');
                 const toggleIcon = header.querySelector('.collapse-toggle');
                 if (toggleIcon) toggleIcon.textContent = '+';
+            } else if (!isCollapsed && content) {
+                section.classList.remove('collapsed');
+                content.classList.remove('collapsed');
+                const toggleIcon = header.querySelector('.collapse-toggle');
+                if (toggleIcon) toggleIcon.textContent = '−';
             }
         });
         
-        // ОСОБАЯ ОБРАБОТКА: Текст внизу карточки
+        // Добавляем значок для секции с текстом если его нет
         const subtitleSection = document.querySelector('.collapsible-section:has(#cardSubtitle)');
         if (subtitleSection) {
             const subtitleHeader = subtitleSection.querySelector('.section-header');
-            const subtitleContent = subtitleSection.querySelector('.section-content');
-            const subtitleToggle = subtitleHeader?.querySelector('.collapse-toggle');
             
-            if (subtitleHeader && subtitleContent && subtitleToggle) {
-                subtitleHeader.addEventListener('click', function(e) {
-                    if (e.target.classList.contains('collapse-toggle')) return;
-                    
-                    subtitleSection.classList.toggle('collapsed');
-                    subtitleContent.classList.toggle('collapsed');
-                    
-                    // Обновляем значок
-                    subtitleToggle.textContent = subtitleContent.classList.contains('collapsed') ? '+' : '−';
-                    
-                    // Сохраняем состояние
-                    localStorage.setItem('subtitleSectionCollapsed', subtitleContent.classList.contains('collapsed'));
-                });
+            // Проверяем есть ли уже значок
+            if (subtitleHeader && !subtitleHeader.querySelector('.collapse-toggle')) {
+                // Создаем и добавляем значок
+                const toggleSpan = document.createElement('span');
+                toggleSpan.className = 'collapse-toggle';
+                toggleSpan.textContent = '−'; // По умолчанию развернуто
+                subtitleHeader.appendChild(toggleSpan);
                 
                 // Восстанавливаем состояние
-                const isCollapsed = localStorage.getItem('subtitleSectionCollapsed') === 'true';
-                if (isCollapsed) {
+                const isCollapsed = localStorage.getItem('section_subtitle') === 'true';
+                const content = subtitleHeader.nextElementSibling;
+                
+                if (isCollapsed && content) {
                     subtitleSection.classList.add('collapsed');
-                    subtitleContent.classList.add('collapsed');
-                    subtitleToggle.textContent = '+';
-                } else {
-                    subtitleSection.classList.remove('collapsed');
-                    subtitleContent.classList.remove('collapsed');
-                    subtitleToggle.textContent = '−';
+                    content.classList.add('collapsed');
+                    toggleSpan.textContent = '+';
                 }
             }
         }
@@ -3588,6 +3635,7 @@ document.addEventListener('DOMContentLoaded', function() {
         
         // Функция для обновления значков
         function updateSectionToggleIcons() {
+            // Для всех секций настроек
             document.querySelectorAll('.collapsible-section').forEach(section => {
                 const toggleIcon = section.querySelector('.collapse-toggle');
                 const content = section.querySelector('.section-content');
@@ -3596,6 +3644,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
             });
 
+            // Для категорий эмодзи
             document.querySelectorAll('.category-header').forEach(header => {
                 const toggleIcon = header.querySelector('.collapse-toggle');
                 const emojiGroup = header.querySelector('.emoji-group');
@@ -3607,18 +3656,25 @@ document.addEventListener('DOMContentLoaded', function() {
         
         if (collapseAllSectionsBtn) {
             collapseAllSectionsBtn.addEventListener('click', function() {
-                // Сворачиваем ВСЕ секции настроек
+                console.log('Сворачиваем ВСЕ секции');
+                
+                // Сворачиваем ВСЕ секции настроек (включая текст внизу карточки)
                 document.querySelectorAll('.collapsible-section').forEach(section => {
                     section.classList.add('collapsed');
                     const content = section.querySelector('.section-content');
-                    if (content) content.classList.add('collapsed');
+                    if (content) {
+                        content.classList.add('collapsed');
+                        console.log('Свернута секция:', section.querySelector('h3')?.textContent);
+                    }
                 });
                 
                 // Сворачиваем ВСЕ категории эмодзи
                 document.querySelectorAll('.category-header').forEach(header => {
                     header.classList.add('collapsed');
                     const emojiGroup = header.querySelector('.emoji-group');
-                    if (emojiGroup) emojiGroup.classList.add('collapsed');
+                    if (emojiGroup) {
+                        emojiGroup.classList.add('collapsed');
+                    }
                 });
                 
                 // Обновляем значки
@@ -3628,24 +3684,43 @@ document.addEventListener('DOMContentLoaded', function() {
                 localStorage.setItem('allSectionsCollapsed', 'true');
                 localStorage.setItem('allEmojiCategoriesCollapsed', 'true');
                 
+                // Сохраняем состояния отдельных секций
+                document.querySelectorAll('.collapsible-section').forEach(section => {
+                    const header = section.querySelector('.section-header h3');
+                    const content = section.querySelector('.section-content');
+                    if (header && content) {
+                        localStorage.setItem(`section_${header.textContent.trim()}`, 'true');
+                    }
+                });
+                
+                // Сохраняем состояние текста внизу карточки
+                localStorage.setItem('section_subtitle', 'true');
+                
                 showNotification('Все секции свёрнуты', 'info');
             });
         }
         
         if (expandAllSectionsBtn) {
             expandAllSectionsBtn.addEventListener('click', function() {
+                console.log('Разворачиваем ВСЕ секции');
+                
                 // Разворачиваем ВСЕ секции настроек
                 document.querySelectorAll('.collapsible-section').forEach(section => {
                     section.classList.remove('collapsed');
                     const content = section.querySelector('.section-content');
-                    if (content) content.classList.remove('collapsed');
+                    if (content) {
+                        content.classList.remove('collapsed');
+                        console.log('Развернута секция:', section.querySelector('h3')?.textContent);
+                    }
                 });
                 
                 // Разворачиваем ВСЕ категории эмодзи
                 document.querySelectorAll('.category-header').forEach(header => {
                     header.classList.remove('collapsed');
                     const emojiGroup = header.querySelector('.emoji-group');
-                    if (emojiGroup) emojiGroup.classList.remove('collapsed');
+                    if (emojiGroup) {
+                        emojiGroup.classList.remove('collapsed');
+                    }
                 });
                 
                 // Обновляем значки
@@ -3655,12 +3730,28 @@ document.addEventListener('DOMContentLoaded', function() {
                 localStorage.removeItem('allSectionsCollapsed');
                 localStorage.removeItem('allEmojiCategoriesCollapsed');
                 
+                // Удаляем состояния отдельных секций
+                document.querySelectorAll('.collapsible-section').forEach(section => {
+                    const header = section.querySelector('.section-header h3');
+                    if (header) {
+                        localStorage.removeItem(`section_${header.textContent.trim()}`);
+                    }
+                });
+                
+                // Удаляем состояние текста внизу карточки
+                localStorage.removeItem('section_subtitle');
+                
                 showNotification('Все секции развёрнуты', 'info');
             });
         }
             
+        // Восстанавливаем состояния при загрузке
         setTimeout(() => {
+            console.log('Восстановление состояний секций...');
+            
+            // Восстанавливаем общее состояние
             if (localStorage.getItem('allSectionsCollapsed') === 'true') {
+                console.log('Все секции были свернуты');
                 document.querySelectorAll('.collapsible-section').forEach(section => {
                     section.classList.add('collapsed');
                     const content = section.querySelector('.section-content');
@@ -3669,11 +3760,25 @@ document.addEventListener('DOMContentLoaded', function() {
             }
             
             if (localStorage.getItem('allEmojiCategoriesCollapsed') === 'true') {
+                console.log('Все категории эмодзи были свернуты');
                 document.querySelectorAll('.category-header').forEach(header => {
                     header.classList.add('collapsed');
                     const emojiGroup = header.querySelector('.emoji-group');
                     if (emojiGroup) emojiGroup.classList.add('collapsed');
                 });
+            }
+            
+            // Восстанавливаем состояние текста внизу карточки
+            const subtitleSection = document.querySelector('.collapsible-section:has(#cardSubtitle)');
+            if (subtitleSection) {
+                const isCollapsed = localStorage.getItem('section_subtitle') === 'true';
+                console.log('Секция текста карточки свернута:', isCollapsed);
+                
+                if (isCollapsed) {
+                    subtitleSection.classList.add('collapsed');
+                    const content = subtitleSection.querySelector('.section-content');
+                    if (content) content.classList.add('collapsed');
+                }
             }
             
             setTimeout(updateSectionToggleIcons, 150);
@@ -5004,54 +5109,6 @@ let controlsHTML = '<div class="animation-controls" style="margin-top: 15px;">';
         console.log('✅ Снегопад остановлен');
     }
 
-
-    function showSnowButton() {
-        const snowControl = document.querySelector('.snow-control');
-        const snowBtn = document.getElementById('toggleSnowBtn');
-        
-        if (!snowControl || !snowBtn) return;
-        
-        // Обновляем текст кнопки
-        if (isSnowActive) {
-            snowBtn.classList.add('active');
-            snowBtn.innerHTML = '<i class="fas fa-snowflake"></i><span>Выключить снегопад ✨</span>';
-        } else {
-            snowBtn.classList.remove('active');
-            snowBtn.innerHTML = '<i class="fas fa-snowflake"></i><span>Включить снегопад 🎁</span>';
-        }
-    }
-
-    function hideSnowButton() {
-        const snowControl = document.querySelector('.snow-control');
-        if (snowControl) {
-            snowControl.style.display = 'none';
-        }
-    }
-   
-    // ===== ФУНКЦИЯ ПОКАЗА УВЕДОМЛЕНИЙ (если её нет) =====
-    function showNotification(message, type = 'info') {
-        const notification = document.createElement('div');
-        notification.className = `notification notification-${type}`;
-        
-        let icon = 'info-circle';
-        if (type === 'success') icon = 'check-circle';
-        if (type === 'warning') icon = 'exclamation-triangle';
-        
-        notification.innerHTML = `
-            <i class="fas fa-${icon}"></i>
-            <span>${message}</span>
-        `;
-        
-        document.body.appendChild(notification);
-        
-        setTimeout(() => notification.classList.add('show'), 10);
-        
-        setTimeout(() => {
-            notification.classList.remove('show');
-            setTimeout(() => notification.remove(), 300);
-        }, 3000);
-    }
-
     setTimeout(() => {
         document.querySelectorAll('.collapsible-section').forEach(section => {
             const toggleIcon = section.querySelector('.collapse-toggle');
@@ -5069,7 +5126,7 @@ let controlsHTML = '<div class="animation-controls" style="margin-top: 15px;">';
             }
         });
     }, 200);
-    
+       
     // Инициализация
     initSiteThemes();
     initSVGThemes();
@@ -5087,4 +5144,21 @@ let controlsHTML = '<div class="animation-controls" style="margin-top: 15px;">';
 
     // Генерируем первую карточку
     generateCard();
+
+    setTimeout(() => {
+        const subtitleSection = document.querySelector('.collapsible-section:has(#cardSubtitle)');
+        if (subtitleSection) {
+            const toggleIcon = subtitleSection.querySelector('.collapse-toggle');
+            const content = subtitleSection.querySelector('.section-content');
+            console.log('Секция текста:', {
+                toggleIcon: !!toggleIcon,
+                content: !!content,
+                collapsed: content?.classList.contains('collapsed')
+            });
+            
+            if (toggleIcon && content) {
+                toggleIcon.textContent = content.classList.contains('collapsed') ? '+' : '−';
+            }
+        }
+    }, 300);
 });
