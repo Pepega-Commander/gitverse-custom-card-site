@@ -27,7 +27,7 @@ jobs:
           node-version: '18'
           cache: 'npm'
           
-      # 3. Устанавливаем зависимости
+      # 3. Устанавливаем зависимости (ИСПРАВЛЕНО: npm install вместо npm ci)
       - name: Install dependencies
         run: npm install
         
@@ -64,7 +64,7 @@ jobs:
         with:
           node-version: '18'
           
-      # 3. Устанавливаем зависимости
+      # 3. Устанавливаем зависимости (ИСПРАВЛЕНО: npm install вместо npm ci)
       - name: Install dependencies
         run: npm install
         
