@@ -127,8 +127,12 @@ describe('📦 Тесты генератора SVG-карточек', () => {
     
     it('должен содержать конфиг ESLint', () => {
       assert.ok(fs.existsSync('.eslintrc.json'), 'Конфиг ESLint отсутствует');
-      const eslintConfig = JSON.parse(fs.readFileSync('.eslintrc.json', 'utf8'));
-      assert.ok(eslintConfig.env, 'ESLint config должен содержать env');
+      try {
+        const eslintConfig = JSON.parse(fs.readFileSync('.eslintrc.json', 'utf8'));
+        assert.ok(eslintConfig.env, 'ESLint config должен содержать env');
+      } catch (e) {
+        throw new Error(`ESLint config содержит ошибку JSON: ${e.message}`);
+      }
     });
     
     it('должен содержать CI/CD конфигурацию', () => {
