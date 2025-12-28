@@ -17,13 +17,13 @@
   },
   "overrides": [
     {
-      "files": ["test.js"],  // Только для test.js
+      "files": ["test.js"],
       "env": {
-        "node": true,        // Это Node.js
-        "mocha": true        // Использует Mocha
+        "node": true,
+        "mocha": true
       },
       "rules": {
-        "no-unused-vars": "off"  // Отключить для тестов
+        "no-unused-vars": "off"
       }
     }
   ]
