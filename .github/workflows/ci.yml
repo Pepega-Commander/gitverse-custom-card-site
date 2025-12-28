@@ -1,0 +1,34 @@
+name: CI/CD Pipeline
+on: [push, pull_request]
+
+jobs:
+  validate-and-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+
+      - name: 🔍 Validate Project Structure
+        run: |
+          echo "Проверка обязательных файлов..."
+          REQUIRED_FILES=("index.html" "style.css" "script.js" "README.md")
+          for file in "${REQUIRED_FILES[@]}"; do
+            if [ ! -f "$file" ]; then
+              echo "❌ Отсутствует: $file"
+              exit 1
+            fi
+          done
+          echo "✅ Все ключевые файлы на месте"
+
+      - name: 🐛 Lint JavaScript
+        run: |
+          if [ -f "script.js" ]; then
+            echo "Проверка синтаксиса JS..."
+            node -c script.js && echo "✅ Синтаксис JS корректен"
+          fi
+
+      - name: 📊 Check File Sizes
+        run: |
+          echo "Контроль размера репозитория:"
+          find . -type f -name "*.mp3" -o -name "*.jpg" -o -name "*.png" | \
+            xargs ls -lh 2>/dev/null | head -5 || true
