@@ -12,4 +12,5 @@
     "no-unused-vars": "warn",
     "no-redeclare": "warn",
     "no-inner-declarations": "off"
+  }
 }
