@@ -1,84 +1,112 @@
-name: Smart Course Validator
-on: [push, pull_request]
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches: [main, test-deploy]
+  pull_request:
+    branches: [main]
+  workflow_dispatch: # Ручной запуск
+  schedule:
+    # Запуск каждый понедельник в 9:00 UTC (креативный элемент)
+    - cron: '0 9 * * 1'
 
 jobs:
-  course-requirements:
+  validate-and-test:
+    name: "🔍 Проверка кода и тесты"
     runs-on: ubuntu-latest
+    
     steps:
-      - name: 📥 Checkout code
+      # 1. Получаем код
+      - name: Checkout repository
         uses: actions/checkout@v4
-
-      # БЛОК 1: ПАРАДИГМЫ SOFTWARE (исправленный синтаксис)
-      - name: 1️⃣ Проверка парадигм разработки
+        
+      # 2. Устанавливаем Node.js
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+          
+      # 3. Устанавливаем зависимости
+      - name: Install dependencies
+        run: npm ci
+        
+      # 4. Проверяем код линтером (критерий: проверка PEP8/аналог)
+      - name: Run ESLint
+        run: npm run lint
+        
+      # 5. Запускаем тесты (критерий: unit tests)
+      - name: Run tests
+        run: npm test
+        
+      # 6. Собираем проект (проверка работоспособности)
+      - name: Build verification
         run: |
-          echo "=== АНАЛИЗ ПАРАДИГМ SOFTWARE ==="
-          
-          if grep -q "addEventListener\|querySelector\|createElement" script.js 2>/dev/null; then
-            echo "✅ Обнаружена детерминированная логика (Software 1.0)"
-          else
-            echo "⚠️  В коде мало признаков явной логики Software 1.0"
-          fi
-          
-          if grep -ri "llm\|ai\|openai\|huggingface" . --include="*.js" --include="*.md" 2>/dev/null; then
-            echo "🎯 Обнаружены признаки Software 3.0 (AI/LLM)"
-          else
-            echo "💡 Рекомендация: можно добавить AI-модуль для генерации описаний"
-          fi
-          
-          echo "📊 Вывод: Проект использует Software 1.0 с потенциалом для Software 3.0"
+          echo "Проверяем структуру файлов..."
+          ls -la
+          echo "Проверяем HTML..."
+          if [ -f "index.html" ]; then echo "✓ index.html найден"; else exit 1; fi
 
-      # БЛОК 2: ДОКУМЕНТАЦИЯ И Mermaid
-      - name: 2️⃣ Проверка документации
-        run: |
-          echo "=== ПРОВЕРКА ДОКУМЕНТАЦИИ ==="
+  deploy:
+    name: "🚀 Автоматический деплой"
+    runs-on: ubuntu-latest
+    needs: validate-and-test # Запустится только если первый job успешен
+    if: github.ref == 'refs/heads/main' # Деплоим только из main
+    
+    steps:
+      # 1. Получаем код
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        
+      # 2. Устанавливаем Node.js
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
           
-          if [ -f "README.md" ]; then
-            README_LINES=$(wc -l < README.md)
-            if [ "$README_LINES" -gt 30 ]; then
-              echo "✅ README достаточно детальный ($README_LINES строк)"
-            else
-              echo "⚠️  README довольно краткий ($README_LINES строк)"
-            fi
-            
-            if grep -q '```mermaid' README.md; then
-              MERMAID_COUNT=$(grep -c '```mermaid' README.md)
-              echo "✅ Обнаружена Mermaid-диаграмма (всего: $MERMAID_COUNT)"
-            else
-              echo "❌ Mermaid-диаграмма не найдена в README"
-            fi
-          else
-            echo "❌ Файл README.md не найден"
-          fi
+      # 3. Устанавливаем зависимости
+      - name: Install dependencies
+        run: npm ci
+        
+      # 4. Деплой на GitHub Pages (креативный элемент)
+      - name: Deploy to GitHub Pages
+        uses: JamesIves/github-pages-deploy-action@v4
+        with:
+          branch: gh-pages # Ветка для GitHub Pages
+          folder: . # Папка с файлами для деплоя (всё из корня)
+          
+      # 5. Уведомление об успешном деплое (дополнительный креативный элемент)
+      - name: Deployment success notice
+        run: |
+          echo "✅ Деплой успешно завершен!"
+          echo "Сайт будет доступен по адресу: https://pepega-commander.github.io/gitverse-custom-card-site/"
+        if: success()
 
-      # БЛОК 3: КАЧЕСТВО КОДА
-      - name: 3️⃣ Анализ кода и Git
+  weekly-report:
+    name: "📊 Еженедельный отчет"
+    runs-on: ubuntu-latest
+    if: always() # Запускается всегда, даже если предыдущие jobs упали
+    
+    steps:
+      # 1. Получаем код
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        
+      # 2. Генерируем простой отчет (креативный элемент)
+      - name: Generate weekly report
         run: |
-          echo "=== АНАЛИЗ КАЧЕСТВА КОДА ==="
+          echo "📈 Еженедельный отчет для проекта: ${{ github.repository }}" > report.md
+          echo "Дата генерации: $(date)" >> report.md
+          echo "---" >> report.md
+          echo "Количество файлов: $(find . -type f | wc -l)" >> report.md
+          echo "Размер репозитория: $(du -sh . | cut -f1)" >> report.md
+          echo "Последние коммиты:" >> report.md
+          git log --oneline -5 >> report.md
           
-          if [ -f ".gitignore" ]; then
-            GITIGNORE_LINES=$(wc -l < .gitignore)
-            echo "✅ .gitignore присутствует ($GITIGNORE_LINES правил)"
-          else
-            echo "⚠️  .gitignore отсутствует"
-          fi
-          
-          # Безопасная проверка на секреты
-          echo "🔒 Проверка на случайные секреты..."
-          find . -type f \( -name "*.js" -o -name "*.json" \) -exec grep -l "api_key\|password\|secret\|token" {} \; 2>/dev/null | head -2
-
-      # ФИНАЛЬНЫЙ ОТЧЁТ
-      - name: 📊 Генерация отчёта
-        run: |
-          echo "========================================"
-          echo "🎓 ОТЧЁТ ПО КУРСУ"
-          echo "========================================"
-          echo "📈 РЕКОМЕНДАЦИИ ДЛЯ УЛУЧШЕНИЯ ОЦЕНКИ:"
-          echo "1. Добавьте Mermaid-диаграмму в README"
-          echo "2. Реализуйте AI-модуль (Software 3.0)"
-          echo "3. Настройте автодеплой через CI/CD"
-          echo ""
-          echo "✅ ТЕКУЩИЙ СТАТУС:"
-          echo "   - CI/CD настроен"
-          echo "   - Проект структурирован"
-          echo "   - Демо доступно на Vercel"
-          echo "========================================"
+      # 3. Сохраняем отчет как артефакт (можно будет скачать)
+      - name: Upload report as artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: weekly-report
+          path: report.md
+          retention-days: 7
