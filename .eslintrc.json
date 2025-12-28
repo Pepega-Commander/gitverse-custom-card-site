@@ -1,7 +1,8 @@
 {
   "env": {
     "browser": true,
-    "es2021": true
+    "es2021": true,
+    "node": true  // ← ДОБАВЬТЕ ЭТУ СТРОКУ
   },
   "parserOptions": {
     "ecmaVersion": "latest",
@@ -12,5 +13,17 @@
     "no-unused-vars": "warn",
     "no-redeclare": "warn",
     "no-inner-declarations": "off"
-  }
+  },
+  "overrides": [
+    {
+      "files": ["test.js"],  // Только для test.js
+      "env": {
+        "node": true,        // Это Node.js
+        "mocha": true        // Использует Mocha
+      },
+      "rules": {
+        "no-unused-vars": "off"  // Отключить для тестов
+      }
+    }
+  ]
 }
