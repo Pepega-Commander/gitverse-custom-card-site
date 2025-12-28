@@ -7,7 +7,7 @@
     "start": "echo 'Откройте index.html в браузере'",
     "lint": "eslint . --ext .js",
     "format": "prettier --write .",
-    "test": "echo 'Тесты пока не реализованы' && exit 0"
+    "test": "echo 'Тесты пока не реализованы' && exit 0",
     "ci": "npm run lint && npm run test"
   },
   "keywords": ["svg", "profile-card", "gitverse"],
