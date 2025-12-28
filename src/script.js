@@ -2,17 +2,17 @@ const musicTracks = [
     {
         name: "Christmas 1",
         fullName: "All I Want For Christmas Is You",
-        url: 'christmas1.mp3'
+        url: '../public/assets/christmas1.mp3'
     },
     {
         name: "Christmas 2",
         fullName: "Last Christmas", 
-        url: 'christmas2.mp3'
+        url: '../public/assets/christmas2.mp3'
     },
     {
         name: "Christmas 3",
         fullName: "Jingle Bells Rock", 
-        url: 'christmas3.mp3'
+        url: '../public/assets/christmas3.mp3'
     }
 ];
 
