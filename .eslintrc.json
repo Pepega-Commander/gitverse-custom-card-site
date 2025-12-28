@@ -8,5 +8,8 @@
     "sourceType": "module"
   },
   "extends": "eslint:recommended",
-  "rules": {}
+  "rules": {
+    "no-unused-vars": "warn",
+    "no-redeclare": "warn",
+    "no-inner-declarations": "off"
 }
