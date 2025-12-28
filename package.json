@@ -4,10 +4,9 @@
   "description": "SVG конструктор карточек для профилей GitHub/GitVerse",
   "main": "script.js",
   "scripts": {
-    "start": "echo 'Откройте index.html в браузере'",
+    "test": "mocha test.js --timeout 5000",
     "lint": "eslint . --ext .js",
-    "format": "prettier --write .",
-    "test": "echo 'Тесты пока не реализованы' && exit 0",
+    "start": "echo 'Откройте public/index.html в браузере'",
     "ci": "npm run lint && npm run test"
   },
   "keywords": ["svg", "profile-card", "gitverse"],
@@ -17,7 +16,6 @@
     "eslint": "^8.56.0",
     "prettier": "^3.2.5",
     "jest": "^29.7.0",
-    "@typescript-eslint/parser": "^6.19.0",
-    "eslint-plugin-jest": "^27.6.3"
+    "mocha": "^10.2.0"
   }
 }
