@@ -46,40 +46,40 @@ jobs:
           echo "Проверяем HTML..."
           if [ -f "index.html" ]; then echo "✓ index.html найден"; else exit 1; fi
 
-  deploy:
-    name: "🚀 Автоматический деплой"
-    runs-on: ubuntu-latest
-    needs: validate-and-test # Запустится только если первый job успешен
-    if: github.ref == 'refs/heads/main' # Деплоим только из main
+  # deploy:
+  #   name: "🚀 Автоматический деплой"
+  #   runs-on: ubuntu-latest
+  #   needs: validate-and-test # Запустится только если первый job успешен
+  #   if: github.ref == 'refs/heads/main' # Деплоим только из main
     
-    steps:
-      # 1. Получаем код
-      - name: Checkout repository
-        uses: actions/checkout@v4
+  #   steps:
+  #     # 1. Получаем код
+  #     - name: Checkout repository
+  #       uses: actions/checkout@v4
         
-      # 2. Устанавливаем Node.js
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '18'
+  #     # 2. Устанавливаем Node.js
+  #     - name: Setup Node.js
+  #       uses: actions/setup-node@v4
+  #       with:
+  #         node-version: '18'
           
-      # 3. Устанавливаем зависимости (ИСПРАВЛЕНО: npm install вместо npm ci)
-      - name: Install dependencies
-        run: npm install
+  #     # 3. Устанавливаем зависимости (ИСПРАВЛЕНО: npm install вместо npm ci)
+  #     - name: Install dependencies
+  #       run: npm install
         
-      # 4. Деплой на GitHub Pages (креативный элемент)
-      - name: Deploy to GitHub Pages
-        uses: JamesIves/github-pages-deploy-action@v4
-        with:
-          branch: gh-pages # Ветка для GitHub Pages
-          folder: . # Папка с файлами для деплоя (всё из корня)
+  #     # 4. Деплой на GitHub Pages (креативный элемент)
+  #     - name: Deploy to GitHub Pages
+  #       uses: JamesIves/github-pages-deploy-action@v4
+  #       with:
+  #         branch: gh-pages # Ветка для GitHub Pages
+  #         folder: . # Папка с файлами для деплоя (всё из корня)
           
-      # 5. Уведомление об успешном деплое (дополнительный креативный элемент)
-      - name: Deployment success notice
-        run: |
-          echo "✅ Деплой успешно завершен!"
-          echo "Сайт будет доступен по адресу: https://pepega-commander.github.io/gitverse-custom-card-site/"
-        if: success()
+  #     # 5. Уведомление об успешном деплое (дополнительный креативный элемент)
+  #     - name: Deployment success notice
+  #       run: |
+  #         echo "✅ Деплой успешно завершен!"
+  #         echo "Сайт будет доступен по адресу: https://pepega-commander.github.io/gitverse-custom-card-site/"
+  #       if: success()
 
   weekly-report:
     name: "📊 Еженедельный отчет"
