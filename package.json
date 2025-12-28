@@ -4,7 +4,7 @@
   "description": "SVG конструктор карточек для профилей GitHub/GitVerse",
   "main": "script.js",
   "scripts": {
-    "test": "node test.js",
+    "test": "mocha test.js --timeout 10000",
     "lint": "eslint . --ext .js",
     "start": "echo 'Откройте public/index.html в браузере'",
     "ci": "npm run lint && npm run test"
