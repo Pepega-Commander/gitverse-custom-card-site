@@ -1,0 +1,23 @@
+{
+  "name": "gitverse-custom-card-site",
+  "version": "1.0.0",
+  "description": "SVG конструктор карточек для профилей GitHub/GitVerse",
+  "main": "script.js",
+  "scripts": {
+    "start": "echo 'Откройте index.html в браузере'",
+    "lint": "eslint . --ext .js",
+    "format": "prettier --write .",
+    "test": "jest",
+    "ci": "npm run lint && npm run test"
+  },
+  "keywords": ["svg", "profile-card", "gitverse"],
+  "author": "Pepega-Commander",
+  "license": "MIT",
+  "devDependencies": {
+    "eslint": "^8.56.0",
+    "prettier": "^3.2.5",
+    "jest": "^29.7.0",
+    "@typescript-eslint/parser": "^6.19.0",
+    "eslint-plugin-jest": "^27.6.3"
+  }
+}
