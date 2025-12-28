@@ -1,3 +1,5 @@
+[![CI/CD Status](https://github.com/Pepega-Commander/gitverse-custom-card-site/actions/workflows/course-validator.yml/badge.svg)](https://github.com/Pepega-Commander/gitverse-custom-card-site/actions/workflows/course-validator.yml)
+
 # GitHub Profile Card Maker
 
 Простой конструктор SVG-карточек для профилей GitHub и GitVerse.
