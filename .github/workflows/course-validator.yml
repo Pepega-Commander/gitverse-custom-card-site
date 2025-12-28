@@ -44,7 +44,13 @@ jobs:
           echo "Проверяем структуру файлов..."
           ls -la
           echo "Проверяем HTML..."
-          if [ -f "index.html" ]; then echo "✓ index.html найден"; else exit 1; fi
+          # Ищем index.html в public/ вместо корня
+          if [ -f "public/index.html" ]; then 
+            echo "✅ index.html найден в public/"
+          else 
+            echo "❌ index.html отсутствует в public/"
+            exit 1
+          fi
 
   # deploy:
   #   name: "🚀 Автоматический деплой"
